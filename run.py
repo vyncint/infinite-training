@@ -1,9 +1,3 @@
-# Infinite Training
-
-The python package for training ML models base on loss, metrics and timeout. We can create target for training or using Ctrl + C to interrupt the training session. This package can store the last weight and optimize weight for us to continue training after interrupting.
-
-Using as example:
-```python
 """
     Apply in example from https://www.tensorflow.org/datasets/keras_example
 """
@@ -51,4 +45,3 @@ it.compile(optimizer=tf.keras.optimizers.Adam(0.001),
            metrics=[tf.keras.metrics.SparseCategoricalAccuracy()],)
 it.train(ds_train, validation_data=ds_test)
 it.show_result(ds_train)
-```

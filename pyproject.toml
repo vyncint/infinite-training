@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+[project]
+name = "infinite_training"
+version = "0.0.1"
+authors = [
+  { name="Nguyễn Chí Vỹ", email="vyncint@icloud.com" },
+]
+description = "The python package for training ML models base on loss, metrics and timeout."
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/vyncint/infinite_training"
+"Bug Tracker" = "https://github.com/vyncint/infinite_training/issues"
