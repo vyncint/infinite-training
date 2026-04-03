@@ -23,13 +23,13 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.12'
     - name: Install dependencies and test
       run: |
         python -m pip install --upgrade pip uv
-        uv venv
+        uv venv --python 3.12
         source .venv/bin/activate
         uv pip install -e ".[dev]"
         pytest tests
