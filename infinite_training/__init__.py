@@ -112,7 +112,7 @@ class InfinityTraining:
 
     def __init__(
         self,
-        model: tf.keras.Model(),
+        model: tf.keras.Model,
         optimize_weight_path: str = "optimize_weight.npy",
         last_weight_path: str = "last_weight.npy",
         optimize_value_path: str = "optimize_value.npy",
@@ -216,7 +216,7 @@ class InfinityTraining:
         self,
         *args,
         **kwargs
-    ) -> tuple():
+    ) -> Tuple[Any, Any]:
         """
         Similar to `tensorflow.keras.Model.predict()` https://www.tensorflow.org/api_docs/python/tf/keras/Model#predict
         """
@@ -226,7 +226,7 @@ class InfinityTraining:
         self,
         *args,
         **kwargs
-    ) -> tuple():
+    ) -> Tuple[Any, Any]:
         """
         Similar to `tensorflow.keras.Model.predict()` https://www.tensorflow.org/api_docs/python/tf/keras/Model#predict
         """

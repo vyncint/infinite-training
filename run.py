@@ -3,6 +3,7 @@
 """
 import tensorflow_datasets as tfds
 import tensorflow as tf
+import os
 from infinite_training import InfinityTraining, Target
 
 (ds_train, ds_test), ds_info = tfds.load(
@@ -37,8 +38,17 @@ model = tf.keras.models.Sequential([
     tf.keras.layers.Dense(10)
 ])
 
-it = InfinityTraining(model=model, target=Target(
-    name="val_sparse_categorical_accuracy", smaller_is_better=False, target_value=0.98), timeout=100)
+os.makedirs("models", exist_ok=True)
+
+it = InfinityTraining(
+    model=model,
+    target=Target(name="val_sparse_categorical_accuracy", smaller_is_better=False, target_value=0.98),
+    timeout=100,
+    optimize_weight_path="models/optimize_weight.npy",
+    last_weight_path="models/last_weight.npy",
+    optimize_value_path="models/optimize_value.npy",
+    list_value_path="models/list_value.npy"
+)
 it.compile(optimizer=tf.keras.optimizers.Adam(0.001),
            loss=tf.keras.losses.SparseCategoricalCrossentropy(
                from_logits=True),

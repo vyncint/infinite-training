@@ -3,13 +3,18 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 [project]
 name = "infinite_training"
-version = "1.0.0"
+version = "2.0.0"
 authors = [
   { name="Nguyễn Chí Vỹ", email="vyncint@icloud.com" },
 ]
 description = "The python package for training ML models base on loss, metrics and timeout."
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.9"
+dependencies = [
+    "tensorflow",
+    "numpy",
+    "polars",
+]
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
@@ -19,3 +24,12 @@ classifiers = [
 [project.urls]
 "Homepage" = "https://github.com/vyncint/infinite-training"
 "Bug Tracker" = "https://github.com/vyncint/infinite-training/issues"
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+]
+example = [
+    "tensorflow-datasets",
+    "importlib_resources"
+]
