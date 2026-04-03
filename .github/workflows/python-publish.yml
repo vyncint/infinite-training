@@ -21,14 +21,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+      with:
+        enable-cache: true
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v7
       with:
         python-version: '3.12'
     - name: Install dependencies and test
       run: |
-        python -m pip install --upgrade pip uv
         uv venv --python 3.12
         source .venv/bin/activate
         uv pip install -e ".[dev]"
