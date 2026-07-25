@@ -1,35 +1,59 @@
 [build-system]
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
+
 [project]
 name = "infinite_training"
-version = "2.0.0"
+version = "2.1.0"
 authors = [
   { name="Nguyễn Chí Vỹ", email="vyncint@icloud.com" },
 ]
-description = "The python package for training ML models base on loss, metrics and timeout."
+description = "Train Keras models until a target metric, a timeout, or Ctrl+C stops them - and resume where you left off."
 readme = "README.md"
-requires-python = ">=3.9"
+# Bounded by TensorFlow, which requires >=3.10 from 2.16 onward.
+requires-python = ">=3.10"
+keywords = ["tensorflow", "keras", "training", "checkpointing", "early-stopping", "machine-learning"]
 dependencies = [
     "tensorflow",
     "numpy",
-    "polars",
 ]
 classifiers = [
-    "Programming Language :: Python :: 3",
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
     "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 
 [project.urls]
 "Homepage" = "https://github.com/vyncint/infinite-training"
 "Bug Tracker" = "https://github.com/vyncint/infinite-training/issues"
+"Changelog" = "https://github.com/vyncint/infinite-training/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
 dev = [
-    "pytest",
+    "pytest>=7",
+    "ruff>=0.6",
 ]
 example = [
     "tensorflow-datasets",
     "importlib_resources"
 ]
+
+[tool.setuptools.packages.find]
+include = ["infinite_training*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
