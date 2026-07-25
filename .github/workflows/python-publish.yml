@@ -28,11 +28,23 @@ jobs:
       with:
         enable-cache: true
     - name: Install dependencies and test
+      env:
+        TF_CPP_MIN_LOG_LEVEL: "3"
       run: |
         uv venv --python 3.12
         source .venv/bin/activate
         uv pip install -e ".[dev]"
         pytest tests
+    - name: Verify the tag matches the packaged version
+      if: github.event_name == 'release'
+      run: |
+        source .venv/bin/activate
+        package_version="$(python -c 'import infinite_training; print(infinite_training.__version__)')"
+        tag_version="${GITHUB_REF_NAME#v}"
+        if [ "$package_version" != "$tag_version" ]; then
+          echo "::error::Tag $tag_version does not match package version $package_version"
+          exit 1
+        fi
     - name: Build package
       run: |
         source .venv/bin/activate
