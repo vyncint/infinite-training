@@ -71,9 +71,9 @@ class TestResume:
         first = _train_once(paths, dataset)
 
         resumed = InfiniteTrainer(model=_fresh_model(), **paths)
-        for restored, original in zip(resumed.last_weights, first.last_weights):
+        for restored, original in zip(resumed.last_weights, first.last_weights, strict=True):
             np.testing.assert_allclose(restored, original)
-        for restored, original in zip(resumed.best_weights, first.best_weights):
+        for restored, original in zip(resumed.best_weights, first.best_weights, strict=True):
             np.testing.assert_allclose(restored, original)
 
     def test_last_value_survives_a_restart(self, paths, dataset):
@@ -89,9 +89,13 @@ class TestResume:
 
         resumed = InfiniteTrainer(model=_fresh_model(), **paths)
         resumed.compile(optimizer="adam", loss="mse")
-        for live, checkpointed in zip(resumed.model.get_weights(), resumed.last_weights):
+        for live, checkpointed in zip(
+            resumed.model.get_weights(), resumed.last_weights, strict=True
+        ):
             np.testing.assert_allclose(live, checkpointed)
-        for live, checkpointed in zip(resumed.best_model.get_weights(), resumed.best_weights):
+        for live, checkpointed in zip(
+            resumed.best_model.get_weights(), resumed.best_weights, strict=True
+        ):
             np.testing.assert_allclose(live, checkpointed)
 
 
@@ -99,7 +103,7 @@ class TestFreshStart:
     def test_absent_checkpoints_fall_back_to_model_state(self, paths):
         model = _fresh_model()
         trainer = InfiniteTrainer(model=model, **paths)
-        for loaded, original in zip(trainer.last_weights, model.get_weights()):
+        for loaded, original in zip(trainer.last_weights, model.get_weights(), strict=True):
             np.testing.assert_allclose(loaded, original)
 
     def test_best_value_starts_at_the_worst_possible(self, paths):
