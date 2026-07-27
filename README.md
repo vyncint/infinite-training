@@ -68,6 +68,14 @@ actually use — importing `TorchTrainer` never loads TensorFlow, and vice versa
 > In 3.0.0 TensorFlow moves to the `tensorflow` extra and neither framework will
 > be installed by default.
 
+> **If you install both frameworks.** On Linux, the default PyTorch wheel bundles
+> CUDA libraries that can clash with the ones TensorFlow loads, segfaulting the
+> interpreter as soon as both are imported into the same process. This is not
+> specific to `infinite_training` — `import tensorflow; import torch` is enough
+> to trigger it. Because the backends here are imported lazily you will not hit
+> it by using one of them, but if you do need both installed, use the CPU build:
+> `pip install torch --index-url https://download.pytorch.org/whl/cpu`.
+
 ---
 
 ## Quick start
