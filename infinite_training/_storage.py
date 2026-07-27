@@ -19,7 +19,14 @@ import numpy as np
 
 T = TypeVar("T")
 
-__all__ = ["load_or_default", "save_object", "save_weights", "load_weights"]
+__all__ = [
+    "load_or_default",
+    "save_object",
+    "save_weights",
+    "load_weights",
+    "load_state_dict",
+    "save_state_dict",
+]
 
 
 def load_or_default(path: str, default_factory: Callable[[], T]) -> Any:
@@ -71,3 +78,24 @@ def save_object(path: str, value: Any) -> None:
 def save_weights(path: str, weights: list[np.ndarray]) -> None:
     """Persist a Keras weight list."""
     save_object(path, weights)
+
+
+def save_state_dict(path: str, state: dict[str, np.ndarray]) -> None:
+    """Persist a PyTorch state dict that has been converted to NumPy arrays.
+
+    Stored as a plain ``dict`` of arrays rather than via ``torch.save`` so that
+    a checkpoint stays readable without PyTorch, and so that a model trained on
+    a GPU can be resumed on a CPU without a device map.
+    """
+    save_object(path, state)
+
+
+def load_state_dict(
+    path: str, default_factory: Callable[[], dict[str, np.ndarray]]
+) -> dict[str, np.ndarray]:
+    """Load a NumPy state dict, falling back to ``default_factory``."""
+    if not os.path.exists(path):
+        return default_factory()
+    loaded = np.load(path, allow_pickle=True)
+    # Saved as a zero-dimensional object array wrapping the dict.
+    return dict(loaded.item())

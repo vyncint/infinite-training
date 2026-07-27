@@ -5,9 +5,16 @@
 [![Python versions](https://img.shields.io/pypi/pyversions/infinite-training.svg)](https://pypi.org/project/infinite-training/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Train a Keras model until it is *good enough*, until you run out of time, or until you press `Ctrl+C` — then pick up exactly where you left off.
+Train a **Keras or PyTorch** model until it is *good enough*, until you run out of time, or until you press `Ctrl+C` — then pick up exactly where you left off.
 
-`Model.fit` makes you choose the number of epochs up front. Often what you actually want is "keep going until validation accuracy passes 0.98", or "train for ten minutes and keep the best result". `infinite_training` wraps `fit` in a resumable loop that does that, remembers the best weights it has seen, and checkpoints everything to disk so an interrupted run is never wasted.
+Training loops make you choose the number of epochs up front. Often what you actually want is "keep going until validation accuracy passes 0.98", or "train for ten minutes and keep the best result". `infinite_training` wraps the loop so it does that, remembers the best weights it has seen, and checkpoints everything to disk so an interrupted run is never wasted.
+
+Both backends share the same `Target`, checkpointing and resume behaviour:
+
+| Backend | Class | You provide |
+| --- | --- | --- |
+| Keras | `InfiniteTrainer` | A `tf.keras.Model`; the trainer calls `fit` |
+| PyTorch | `TorchTrainer` | A `nn.Module` and a step function returning metrics |
 
 ---
 
@@ -15,9 +22,14 @@ Train a Keras model until it is *good enough*, until you run out of time, or unt
 
 - [Installation](#installation)
 - [Quick start](#quick-start)
+  - [Keras](#keras)
+  - [PyTorch](#pytorch)
 - [How it works](#how-it-works)
 - [Resuming a session](#resuming-a-session)
 - [API reference](#api-reference)
+  - [`Target`](#target)
+  - [`InfiniteTrainer`](#infinitetrainer-keras)
+  - [`TorchTrainer`](#torchtrainer-pytorch)
 - [Choosing a target](#choosing-a-target)
 - [Security note on checkpoints](#security-note-on-checkpoints)
 - [Migrating from 2.0.x](#migrating-from-20x)
@@ -32,17 +44,43 @@ Train a Keras model until it is *good enough*, until you run out of time, or unt
 pip install infinite-training
 ```
 
-To run the bundled example as well:
+For the PyTorch backend:
+
+```bash
+pip install "infinite-training[torch]"
+```
+
+To run the bundled Keras example as well:
 
 ```bash
 pip install "infinite-training[example]"
 ```
 
-Requires Python 3.10+ and TensorFlow.
+Requires Python 3.10+.
+
+The two backends are imported lazily, so you only need the framework you
+actually use — importing `TorchTrainer` never loads TensorFlow, and vice versa.
+
+> **Note on the 2.x dependency set.** TensorFlow is still a hard requirement of
+> `infinite-training` itself, so that an existing `pip install infinite-training`
+> keeps working unchanged. If you only want PyTorch you can skip it today with
+> `pip install --no-deps infinite-training` followed by `pip install numpy torch`.
+> In 3.0.0 TensorFlow moves to the `tensorflow` extra and neither framework will
+> be installed by default.
+
+> **If you install both frameworks.** On Linux, the default PyTorch wheel bundles
+> CUDA libraries that can clash with the ones TensorFlow loads, segfaulting the
+> interpreter as soon as both are imported into the same process. This is not
+> specific to `infinite_training` — `import tensorflow; import torch` is enough
+> to trigger it. Because the backends here are imported lazily you will not hit
+> it by using one of them, but if you do need both installed, use the CPU build:
+> `pip install torch --index-url https://download.pytorch.org/whl/cpu`.
 
 ---
 
 ## Quick start
+
+### Keras
 
 ```python
 import numpy as np
@@ -74,6 +112,54 @@ print(f"best loss {best_loss:.6f} after {trainer.rounds_completed} round(s)")
 ```
 
 `compile` and `train` forward their arguments to `Model.compile` and `Model.fit`, so anything you already pass to Keras keeps working.
+
+### PyTorch
+
+PyTorch has no `fit`, so you hand the trainer your training step instead. It is
+called once per round and returns the metrics for that round — whatever you want
+to target has to appear in the mapping it returns.
+
+```python
+import torch
+from torch import nn
+from infinite_training import TorchTrainer, Target
+
+x = torch.rand(256, 2)
+y = x.sum(dim=1, keepdim=True)
+
+model = nn.Sequential(nn.Linear(2, 16), nn.ReLU(), nn.Linear(16, 1))
+optimizer = torch.optim.Adam(model.parameters())
+loss_fn = nn.MSELoss()
+
+
+def step() -> dict[str, float]:
+    model.train()
+    optimizer.zero_grad()
+    loss = loss_fn(model(x), y)
+    loss.backward()
+    optimizer.step()
+    return {"loss": loss.item()}
+
+
+trainer = TorchTrainer(
+    model=model,
+    target=Target(name="loss", smaller_is_better=True, target_value=1e-4),
+    timeout=60,  # seconds
+)
+
+trainer.train(step)  # loops until the target, the timeout, or Ctrl+C
+
+predictions, best_loss = trainer.predict_best(x)
+print(f"best loss {best_loss:.6f} after {trainer.rounds_completed} round(s)")
+```
+
+There is no `compile()` step: the shadow copy that holds the best weights is
+built in the constructor, so inference works straight away.
+
+One round is one call to your step function, so *you* choose the granularity at
+which the target and the timeout are checked — one epoch, a fixed number of
+batches, or an epoch followed by an evaluation pass, as in
+[`examples/mnist_torch.py`](examples/mnist_torch.py).
 
 ---
 
@@ -129,13 +215,13 @@ The stopping criterion.
 
 | Argument | Type | Default | Description |
 | --- | --- | --- | --- |
-| `name` | `str` | `"loss"` | Key to read from the Keras `History`. Any loss or metric, including `val_*` keys. |
+| `name` | `str` | `"loss"` | Key to read from the Keras `History`, or from the mapping your PyTorch step returns. Any loss or metric, including `val_*` keys. |
 | `smaller_is_better` | `bool` | `True` | `True` for losses and error rates, `False` for accuracy-like metrics. |
 | `target_value` | `float \| None` | `None` | Value at which training stops. `None` means an unreachable bound, so the session is limited only by `timeout` or `Ctrl+C`. |
 
 Methods: `is_improvement(candidate, incumbent)`, `is_reached(value)`, and the `worst_possible_value` property.
 
-### `InfiniteTrainer`
+### `InfiniteTrainer` (Keras)
 
 | Argument | Type | Default | Description |
 | --- | --- | --- | --- |
@@ -164,6 +250,42 @@ Methods: `is_improvement(candidate, incumbent)`, `is_reached(value)`, and the `w
 | `rounds_completed` | Number of recorded rounds. |
 | `best_weights` / `last_weights` | Weight lists. |
 | `best_model` | Shadow model holding the best weights (available after `compile`). |
+
+### `TorchTrainer` (PyTorch)
+
+| Argument | Type | Default | Description |
+| --- | --- | --- | --- |
+| `model` | `nn.Module` | required | Deep-copied once to hold the best weights, so it must be copyable. |
+| `target` | `Target` | `Target()` | Stopping criterion. |
+| `timeout` | `float \| None` | `None` | Wall-clock budget in seconds, checked between rounds. `None` means unbounded. |
+| `best_weights_path` | `str` | `"best_weights.npy"` | Best weights checkpoint. |
+| `last_weights_path` | `str` | `"last_weights.npy"` | Most recent weights checkpoint. |
+| `best_value_path` | `str` | `"best_value.npy"` | Best observed value. |
+| `value_history_path` | `str` | `"value_history.npy"` | Per-round value history. |
+
+| Method | Description |
+| --- | --- |
+| `train(step_fn, *args, **kwargs)` | Calls `step_fn` in a loop until the target, the timeout, or `Ctrl+C`. Extra arguments are forwarded to it. Always checkpoints. |
+| `save()` | Write all four checkpoints immediately. |
+| `predict_best(*args, **kwargs)` | `(output, best_value)` using the best weights, in eval mode under `torch.no_grad()`. |
+| `predict_last(*args, **kwargs)` | `(output, last_value)` using the most recent weights. |
+
+Properties are the same as for `InfiniteTrainer`, except that `best_weights` and
+`last_weights` are state dicts of NumPy arrays rather than Keras weight lists,
+and `best_model` is ready immediately — there is no `compile()`.
+
+**The step-function contract.** `step_fn` must return a mapping of metric name
+to value, for example `{"loss": 0.31}`. A value may be a float, a
+`torch.Tensor`, a NumPy scalar, or a sequence — for a sequence the last element
+is used, matching how Keras reports a multi-epoch `History`. If the target names
+a key that is not in the mapping, the trainer raises `RuntimeError` listing the
+keys that were returned; if the step returns something that is not a mapping, it
+raises `TypeError`.
+
+**Checkpoint format.** State dicts are stored as NumPy arrays rather than
+`torch.save` archives, so a checkpoint written on a GPU resumes on a CPU with no
+device map, and dtypes such as the `int64` buffer in `BatchNorm` round-trip
+unchanged.
 
 ---
 

@@ -4,15 +4,28 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "infinite_training"
-version = "2.1.0"
+version = "2.2.0"
 authors = [
   { name="Nguyễn Chí Vỹ", email="vyncint@icloud.com" },
 ]
-description = "Train Keras models until a target metric, a timeout, or Ctrl+C stops them - and resume where you left off."
+description = "Train Keras or PyTorch models until a target metric, a timeout, or Ctrl+C stops them - and resume where you left off."
 readme = "README.md"
 # Bounded by TensorFlow, which requires >=3.10 from 2.16 onward.
 requires-python = ">=3.10"
-keywords = ["tensorflow", "keras", "training", "checkpointing", "early-stopping", "machine-learning"]
+keywords = [
+    "tensorflow",
+    "keras",
+    "pytorch",
+    "torch",
+    "training",
+    "checkpointing",
+    "early-stopping",
+    "machine-learning",
+]
+# TensorFlow stays a hard requirement for the 2.x line so that an existing
+# `pip install infinite-training` keeps working unchanged. It moves to the
+# `tensorflow` extra in 3.0.0; the extra is already declared below so that new
+# code can opt into the future spelling today.
 dependencies = [
     "tensorflow",
     "numpy",
@@ -36,6 +49,12 @@ classifiers = [
 "Changelog" = "https://github.com/vyncint/infinite-training/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
+tensorflow = [
+    "tensorflow",
+]
+torch = [
+    "torch",
+]
 dev = [
     "pytest>=7",
     "ruff>=0.6",
