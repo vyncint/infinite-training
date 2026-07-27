@@ -47,8 +47,52 @@ jobs:
         run: |
           uv venv --python ${{ matrix.python-version }}
           source .venv/bin/activate
-          uv pip install -e ".[dev]"
+          uv pip install -e ".[dev,torch]"
       - name: Run tests
+        env:
+          TF_CPP_MIN_LOG_LEVEL: "3"
+        run: |
+          source .venv/bin/activate
+          pytest tests -v
+
+  # Each backend has to work on its own, so prove the package is usable with
+  # only one framework installed. The suite skips the modules whose framework
+  # is absent.
+  backend-isolation:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - backend: torch
+            install: "torch"
+          - backend: tensorflow
+            install: "tensorflow"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Install with only ${{ matrix.backend }}
+        run: |
+          uv venv --python 3.12
+          source .venv/bin/activate
+          # --no-deps keeps the other framework out; the package still declares
+          # tensorflow as a runtime dependency for the 2.x line.
+          uv pip install --no-deps -e .
+          uv pip install numpy pytest ${{ matrix.install }}
+      - name: Confirm the other framework is absent
+        run: |
+          source .venv/bin/activate
+          python - <<'PY'
+          import importlib.util
+          other = {"torch": "tensorflow", "tensorflow": "torch"}["${{ matrix.backend }}"]
+          assert importlib.util.find_spec(other) is None, f"{other} unexpectedly installed"
+          assert importlib.util.find_spec("${{ matrix.backend }}") is not None
+          print(f"only ${{ matrix.backend }} present, as intended")
+          PY
+      - name: Run the tests that apply
         env:
           TF_CPP_MIN_LOG_LEVEL: "3"
         run: |

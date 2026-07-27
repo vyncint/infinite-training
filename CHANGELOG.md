@@ -5,6 +5,35 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2026-07-28
+
+Adds a PyTorch backend. Fully backward compatible: the Keras API is unchanged
+and no existing checkpoint needs converting.
+
+### Added
+
+- `TorchTrainer`, a PyTorch backend sharing `Target`, the round loop, the
+  timeout, the `Ctrl+C` handling and the resume behaviour with the Keras
+  trainer. PyTorch has no `fit`, so you pass a step function that runs one round
+  and returns its metrics.
+- A `torch` extra: `pip install "infinite-training[torch]"`.
+- A `tensorflow` extra, so new code can already name the dependency it wants.
+  TensorFlow remains a hard requirement for the whole 2.x line; it moves to the
+  extra in 3.0.0.
+- `examples/mnist_torch.py`, the PyTorch counterpart of the Keras MNIST example.
+- Tests for the PyTorch backend and for backend isolation (39 new, 94 in total),
+  plus a CI job that installs each framework on its own and runs the suite.
+
+### Changed
+
+- Backends are imported lazily. `import infinite_training` no longer imports
+  TensorFlow, and referencing `TorchTrainer` never imports it either — so having
+  only one of the two frameworks installed is enough. Asking for a trainer whose
+  framework is missing raises an `ImportError` naming the extra to install.
+- The loop, the target and timeout bookkeeping, the value history and the
+  checkpoint paths moved into an internal `_base` module shared by both
+  backends. No public name changed.
+
 ## [2.1.0] - 2026-07-25
 
 Backward compatible with 2.0.0: existing code keeps working and warns where an
@@ -89,5 +118,6 @@ The following still work and will be removed in 3.0.0:
 
 - Upgraded to the latest TensorFlow and switched the release workflow to `uv`.
 
+[2.2.0]: https://github.com/vyncint/infinite-training/releases/tag/v2.2.0
 [2.1.0]: https://github.com/vyncint/infinite-training/releases/tag/v2.1.0
 [2.0.0]: https://github.com/vyncint/infinite-training/releases/tag/v2.0.0
