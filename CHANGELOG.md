@@ -21,7 +21,7 @@ and no existing checkpoint needs converting.
   TensorFlow remains a hard requirement for the whole 2.x line; it moves to the
   extra in 3.0.0.
 - `examples/mnist_torch.py`, the PyTorch counterpart of the Keras MNIST example.
-- Tests for the PyTorch backend and for backend isolation (39 new, 94 in total),
+- Tests for the PyTorch backend and for backend isolation (38 new, 93 in total),
   plus a CI job that installs each framework on its own and runs the suite.
 
 ### Changed
